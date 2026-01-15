@@ -1,0 +1,539 @@
+# writinglabs
+writingstudio
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mas's Writing Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background: linear-gradient(180deg, #0a0a0a 0%, #171717 50%, #0f0f0f 100%);
+            min-height: 100vh;
+        }
+        textarea:focus, input:focus { 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+            border-color: #fbbf24;
+        }
+        textarea, input { transition: all 0.3s ease; }
+        textarea:hover, input:hover { border-color: #525252; }
+        .save-indicator { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            background: rgba(23, 23, 23, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(251, 191, 36, 0.1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #0a0a0a;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
+        }
+        ::selection { background: #fbbf24; color: #0a0a0a; }
+    </style>
+</head>
+<body class="text-neutral-100 font-sans">
+    <div id="app"></div>
+    <script>
+        let activeTab = 'progress';
+        let entries = {
+            reflection1: '',
+            reflection2: '',
+            accountConcept: '',
+            firstPostIdea: '',
+            captionDraft: '',
+            visualDescription: '',
+            fullPost: ''
+        };
+        let saveTimeout = null;
+        let showSaved = false;
+
+        function loadEntries() {
+            const saved = localStorage.getItem('mas-writing-lab');
+            if (saved) entries = { ...entries, ...JSON.parse(saved) };
+        }
+
+        function saveEntries() {
+            localStorage.setItem('mas-writing-lab', JSON.stringify(entries));
+            showSaved = true;
+            render();
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => { showSaved = false; render(); }, 2000);
+        }
+
+        function updateEntry(key, value) { entries[key] = value; saveEntries(); }
+        function switchTab(tab) { activeTab = tab; render(); }
+
+        const chameleonLogo = `
+            <svg viewBox="0 0 48 48" class="w-11 h-11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="24" cy="28" rx="14" ry="10" fill="#fbbf24"/>
+                <path d="M10 28 Q6 32 8 38 Q10 42 14 40" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <ellipse cx="34" cy="24" rx="8" ry="7" fill="#fcd34d"/>
+                <circle cx="36" cy="22" r="5" fill="#fef3c7"/>
+                <circle cx="37" cy="22" r="2.5" fill="#171717"/>
+                <circle cx="38" cy="21" r="1" fill="white"/>
+                <path d="M28 18 Q32 14 38 16" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <path d="M18 34 L16 40 M20 35 L19 41" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+                <path d="M28 34 L29 40 M30 34 L32 40" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="20" cy="26" r="2" fill="#f59e0b" opacity="0.5"/>
+                <circle cx="26" cy="30" r="1.5" fill="#f59e0b" opacity="0.5"/>
+                <circle cx="18" cy="31" r="1.5" fill="#f59e0b" opacity="0.5"/>
+            </svg>`;
+
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <header class="border-b border-amber-900/30 sticky top-0 bg-neutral-950/95 backdrop-blur-md z-50">
+                    <div class="max-w-3xl mx-auto px-6 py-5">
+                        <div class="flex justify-between items-center mb-5">
+                            <div class="flex items-center gap-4">
+                                ${chameleonLogo}
+                                <div>
+                                    <h1 class="text-xl font-serif font-semibold tracking-wide text-amber-100">Mas's Writing Lab</h1>
+                                    <p class="text-xs text-amber-600/70 tracking-widest uppercase">Allergic to overthinking · Victim to oversimplification</p>
+                                </div>
+                            </div>
+                            ${showSaved ? `<div class="save-indicator flex items-center gap-2 text-amber-400 text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg><span>Saved</span></div>` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="switchTab('progress')" class="px-5 py-2.5 text-sm rounded-full transition-all ${activeTab === 'progress' ? 'tab-active font-medium' : 'text-amber-200/80 hover:bg-amber-900/20 border border-amber-800/50'}">Progress</button>
+                            <button onclick="switchTab('history')" class="px-5 py-2.5 text-sm rounded-full transition-all ${activeTab === 'history' ? 'tab-active font-medium' : 'text-amber-200/80 hover:bg-amber-900/20 border border-amber-800/50'}">Past Work</button>
+                            <button onclick="switchTab('homework')" class="px-5 py-2.5 text-sm rounded-full transition-all ${activeTab === 'homework' ? 'tab-active font-medium' : 'text-amber-200/80 hover:bg-amber-900/20 border border-amber-800/50'}">Assignment</button>
+                        </div>
+                    </div>
+                </header>
+                ${activeTab === 'progress' ? renderProgress() : ''}
+                ${activeTab === 'history' ? renderHistory() : ''}
+                ${activeTab === 'homework' ? renderHomework() : ''}
+                <footer class="border-t border-amber-900/20 py-8 px-6 mt-12 bg-neutral-950/50">
+                    <div class="max-w-3xl mx-auto flex justify-between items-center text-xs text-amber-700/60">
+                        <span class="flex items-center gap-2 font-serif italic">Mas's Writing Lab · Comma Chameleon</span>
+                        <span class="flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                            </svg>saves automatically
+                        </span>
+                    </div>
+                </footer>`;
+            document.querySelectorAll('textarea[data-key], input[data-key]').forEach(el => {
+                el.addEventListener('input', (e) => updateEntry(e.target.dataset.key, e.target.value));
+            });
+        }
+
+        function renderProgress() {
+            return `
+                <section class="py-12 px-6">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="card rounded-2xl p-8 mb-8">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-2 h-2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"></div>
+                                <p class="text-amber-400 text-xs uppercase tracking-widest font-medium">Progress Report</p>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-amber-600/50 text-xs uppercase tracking-wider mb-4 font-medium">Completed</h3>
+                                    <ul class="space-y-3 text-neutral-300 text-sm">
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-xs shadow-sm">✓</span>Instagram Bio & Persona Work</li>
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-xs shadow-sm">✓</span>Third-Person Self Portrait</li>
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-xs shadow-sm">✓</span>Salawat (Spiritual Poetry)</li>
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-xs shadow-sm">✓</span>Sensory Writing Practice</li>
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-xs shadow-sm">✓</span>Addiction Reflection</li>
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-xs shadow-sm">✓</span>Journey Metaphor Piece</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 class="text-amber-600/50 text-xs uppercase tracking-wider mb-4 font-medium">In Progress</h3>
+                                    <ul class="space-y-3 text-neutral-300 text-sm">
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 border-2 border-amber-400 text-amber-400 rounded-full flex items-center justify-center text-xs">→</span>Anonymous Instagram Launch</li>
+                                        <li class="flex items-center gap-3"><span class="w-6 h-6 border-2 border-neutral-700 text-neutral-600 rounded-full flex items-center justify-center text-xs">○</span><span class="text-neutral-500">Building Consistency</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card rounded-2xl p-8 mb-8">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-2 h-2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"></div>
+                                <p class="text-amber-400 text-xs uppercase tracking-widest font-medium">Your Origin Story</p>
+                            </div>
+                            <p class="text-neutral-300 leading-relaxed text-lg font-serif italic border-l-3 border-amber-500 pl-6" style="border-left-width: 3px;">
+                                "Here you see a strange specimen. If you did not know the concept of a human being, you may think you are seeing a still object, a piece of furniture in the environment, statue-like in fact. Even though you may not see anything moving, there is a complex system of gears turning in the head of said individual."
+                            </p>
+                            <div class="mt-6 p-5 bg-neutral-800/50 rounded-xl border-l-3 border-neutral-600" style="border-left-width: 3px;">
+                                <p class="text-neutral-400 text-sm font-serif italic">
+                                    "Allergic to overthinking, victim to oversimplification. Half hippie, half... something else. Lover of strawberry laces & ritz crackers. Can get obsessed with momentous problem-solving."
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="card rounded-2xl p-8 mb-8">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-2 h-2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"></div>
+                                <p class="text-amber-400 text-xs uppercase tracking-widest font-medium">Your Driving Forces</p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">🌸 Wholesome content — cutesie, feel-good stuff</p></div>
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">🔧 Making, inventing, creating</p></div>
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">🧩 Obsessive problem-solving</p></div>
+                            </div>
+                        </div>
+
+                        <div class="card rounded-2xl p-8 mb-8">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-2 h-2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"></div>
+                                <p class="text-amber-400 text-xs uppercase tracking-widest font-medium">Skills Developing</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">Sensory anchors & showing</p></div>
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">Metaphor & imagery</p></div>
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">Honest self-reflection</p></div>
+                                <div class="p-4 bg-neutral-800/50 rounded-xl border border-neutral-700/50"><p class="text-neutral-300 text-sm">Voice consistency</p></div>
+                            </div>
+                        </div>
+
+                        <div class="card rounded-2xl p-8">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-2 h-2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"></div>
+                                <p class="text-amber-400 text-xs uppercase tracking-widest font-medium">Reflections</p>
+                            </div>
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="text-sm text-neutral-500 mb-2 block">What feels different about your writing now?</label>
+                                    <textarea data-key="reflection1" rows="3" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="Write your thoughts...">${entries.reflection1}</textarea>
+                                </div>
+                                <div>
+                                    <label class="text-sm text-neutral-500 mb-2 block">What's still hard? What do you want to improve?</label>
+                                    <textarea data-key="reflection2" rows="3" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="Write your thoughts...">${entries.reflection2}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>`;
+        }
+
+        function renderHistory() {
+            return `
+                <section class="py-12 px-6">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="mb-10 text-center">
+                            <p class="text-amber-500 text-xs uppercase tracking-widest mb-2">Past Work</p>
+                            <h2 class="text-3xl font-serif font-medium text-amber-100">Your Writing Journey</h2>
+                        </div>
+
+                        <!-- Entry: Third Person Bio -->
+                        <div class="card rounded-2xl p-8 mb-6">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <p class="text-amber-500 text-xs uppercase tracking-widest mb-1">Entry #1</p>
+                                    <h3 class="text-xl font-serif text-neutral-100">Third-Person Self Portrait</h3>
+                                </div>
+                                <span class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-neutral-900 text-xs font-medium rounded-full shadow-sm">Completed</span>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="p-5 bg-neutral-800/30 rounded-xl border-l-3 border-amber-500" style="border-left-width: 3px;">
+                                    <p class="text-neutral-300 leading-relaxed font-serif italic text-sm">
+                                        "His eyes are fixated on what you would call a screen, seemingly solving a complex problem that would take a team of men from 1950 to solve. He was in fact using a talking encyclopedia known as ChatGPT, waiting for the response so he could copy and paste the code for his side project..."
+                                    </p>
+                                </div>
+                                <div class="p-5 bg-neutral-800/30 rounded-xl border-l-3 border-neutral-600" style="border-left-width: 3px;">
+                                    <p class="text-neutral-400 text-sm font-serif italic">
+                                        "<strong>Swipe</strong> 'Patrick star is secretly the smartest charac-'<br>
+                                        <strong>Swipe</strong> 'How Yemenis say Marhaban'<br>
+                                        <strong>Swipe</strong> 'Marriage isn't about-'"
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-6 p-5 bg-amber-900/20 rounded-xl border border-amber-800/30">
+                                <p class="text-amber-400 text-sm font-medium mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"/></svg>
+                                    Teacher's Note
+                                </p>
+                                <p class="text-neutral-400 text-sm leading-relaxed">
+                                    This is comedy gold. The Attenborough voice works perfectly — you've got timing, self-awareness, and the "swipe" interruptions are genuinely funny. The line about "god knows when that will happen" landing after the marriage video? Chef's kiss. Your voice is sharp when you let it be weird.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Entry: Salawat -->
+                        <div class="card rounded-2xl p-8 mb-6">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <p class="text-amber-500 text-xs uppercase tracking-widest mb-1">Entry #10</p>
+                                    <h3 class="text-xl font-serif text-neutral-100">Salawat (Spiritual Poetry)</h3>
+                                </div>
+                                <span class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-neutral-900 text-xs font-medium rounded-full shadow-sm">Completed</span>
+                            </div>
+                            <div class="p-5 bg-neutral-800/30 rounded-xl border-l-3 border-amber-500" style="border-left-width: 3px;">
+                                <p class="text-neutral-300 leading-relaxed font-serif italic text-sm">
+                                    "Blessings upon the one who took the time<br>
+                                    To help a little girl when it took a while<br><br>
+                                    Blessings upon the one who comforted<br>
+                                    The tree that cried for him..."
+                                </p>
+                            </div>
+                            <div class="mt-6 p-5 bg-amber-900/20 rounded-xl border border-amber-800/30">
+                                <p class="text-amber-400 text-sm font-medium mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+                                    Key Insight
+                                </p>
+                                <p class="text-neutral-400 text-sm leading-relaxed">
+                                    This reveals a completely different register — reverent, lyrical, deeply felt. The specificity ("the tree that cried for him", "sour grapes gifted to him") shows you know how to anchor big emotions in small details. This is the same skill as your comedy, just pointed at something sacred.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Entry: Addiction -->
+                        <div class="card rounded-2xl p-8 mb-6">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <p class="text-amber-500 text-xs uppercase tracking-widest mb-1">Entry #12</p>
+                                    <h3 class="text-xl font-serif text-neutral-100">Addiction (Raw Reflection)</h3>
+                                </div>
+                                <span class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-neutral-900 text-xs font-medium rounded-full shadow-sm">Completed</span>
+                            </div>
+                            <div class="p-5 bg-neutral-800/30 rounded-xl border-l-3 border-amber-500" style="border-left-width: 3px;">
+                                <p class="text-neutral-300 leading-relaxed font-serif italic text-sm">
+                                    "It's only been 6 hours since I got my new phone and my screen time app is displaying 5hrs. What is it about this 6.3 inch piece of glass that my eyes are glued to it?... Rich experiences diminished into 10 second videos that I don't even have the attention span to finish."
+                                </p>
+                            </div>
+                            <div class="mt-6 p-5 bg-amber-900/20 rounded-xl border border-amber-800/30">
+                                <p class="text-amber-400 text-sm font-medium mb-2">Teacher's Note</p>
+                                <p class="text-neutral-400 text-sm leading-relaxed">
+                                    This is honest in a way most people can't manage. "I know it's slowly killing me" — that line hits because you're not pretending. The irony of writing about phone addiction is rich territory. This kind of vulnerability is rare and valuable.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Entry: Journey -->
+                        <div class="card rounded-2xl p-8 mb-6">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <p class="text-amber-500 text-xs uppercase tracking-widest mb-1">Entry #15</p>
+                                    <h3 class="text-xl font-serif text-neutral-100">Journey (Extended Metaphor)</h3>
+                                </div>
+                                <span class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-neutral-900 text-xs font-medium rounded-full shadow-sm">Completed</span>
+                            </div>
+                            <div class="p-5 bg-neutral-800/30 rounded-xl border-l-3 border-amber-500" style="border-left-width: 3px;">
+                                <p class="text-neutral-300 leading-relaxed font-serif italic text-sm">
+                                    "We are all on a journey with an unknown destination. What car do you choose to be in?... Make sure you pick the right passengers along the way. For they will be strong where you are weak and guide you when you go astray."
+                                </p>
+                            </div>
+                            <div class="mt-6 p-5 bg-amber-900/20 rounded-xl border border-amber-800/30">
+                                <p class="text-amber-400 text-sm font-medium mb-2">Key Insight</p>
+                                <p class="text-neutral-400 text-sm leading-relaxed">
+                                    You can sustain a metaphor. The car = life journey works because you commit to it fully. The ending ("May you find the car where you'll want to stay") is genuinely beautiful. You write well when you trust the image to carry the meaning.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-gradient-to-r from-amber-900/20 to-neutral-800/30 rounded-2xl border border-amber-800/20 text-center">
+                            <p class="text-neutral-400 text-sm">
+                                <span class="text-amber-400 font-medium">Up next →</span> Launch your anonymous Instagram account with your first real post.
+                            </p>
+                        </div>
+                    </div>
+                </section>`;
+        }
+
+        function renderHomework() {
+            return `
+                <section class="py-12 px-6">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="mb-10 text-center">
+                            <p class="text-amber-500 text-xs uppercase tracking-widest mb-2">Assignment</p>
+                            <h2 class="text-3xl font-serif font-medium text-amber-100 mb-2">The Anonymous Instagram</h2>
+                            <p class="text-neutral-500">Your page is live. Now reflect, refine, and grow.</p>
+                        </div>
+
+                        <!-- SECTION 1: COMPLETED -->
+                        <div class="mb-12">
+                            <div class="flex items-center gap-3 mb-6">
+                                <span class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-neutral-900 text-xs font-semibold rounded-full shadow-sm uppercase tracking-wider">Completed</span>
+                                <div class="flex-1 h-px bg-amber-800/30"></div>
+                            </div>
+
+                            <!-- First Post Uploaded -->
+                            <div class="p-8 bg-gradient-to-br from-green-900/20 to-neutral-800/30 rounded-2xl mb-6 border border-green-800/30">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">✓</span>
+                                    <h3 class="text-lg font-serif text-neutral-100">First Post Uploaded!</h3>
+                                </div>
+                                <p class="text-neutral-400 text-sm">
+                                    You did it. Your anonymous account is live and your first post is out in the world. That takes courage — most people never get past the planning stage.
+                                </p>
+                            </div>
+
+                            <!-- Reflection 1 -->
+                            <div class="card rounded-2xl p-8 mb-6">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <span class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">1</span>
+                                    <h3 class="text-lg font-serif text-neutral-100">Reflect on Your First Post</h3>
+                                </div>
+                                <p class="text-neutral-500 text-sm mb-4">
+                                    Now that it's live, how do you feel about it? Be honest. What worked? What felt right? What felt awkward or forced?
+                                </p>
+                                <textarea data-key="firstPostReflection" rows="4" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="How did it feel to post? What do you think of it now that it's out there?">${entries.firstPostReflection || ''}</textarea>
+                            </div>
+
+                            <!-- Reflection 2 -->
+                            <div class="card rounded-2xl p-8 mb-6">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <span class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">2</span>
+                                    <h3 class="text-lg font-serif text-neutral-100">What Would You Edit?</h3>
+                                </div>
+                                <p class="text-neutral-500 text-sm mb-4">
+                                    If you could go back and change one thing about the post — the caption, the image, the hook, the ending — what would it be? Why?
+                                </p>
+                                <textarea data-key="whatWouldEdit" rows="4" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="What would you change? Be specific — the first line, the image choice, the tone, the length?">${entries.whatWouldEdit || ''}</textarea>
+                            </div>
+
+                            <!-- Reflection 3 -->
+                            <div class="card rounded-2xl p-8">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <span class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">3</span>
+                                    <h3 class="text-lg font-serif text-neutral-100">Who Do You Hope Sees It?</h3>
+                                </div>
+                                <p class="text-neutral-500 text-sm mb-4">
+                                    Not in terms of follower count — in terms of <em>who</em>. What kind of person do you want to find this post and feel something? What would you want them to think or do after reading it?
+                                </p>
+                                <textarea data-key="whoHopeSeesIt" rows="4" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="Describe your ideal reader. Who are they? What resonates with them? What do you hope they feel?">${entries.whoHopeSeesIt || ''}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: NEW ACTIVITY -->
+                        <div>
+                            <div class="flex items-center gap-3 mb-6">
+                                <span class="px-4 py-1.5 bg-neutral-700 text-amber-400 text-xs font-semibold rounded-full uppercase tracking-wider border border-amber-800/50">New Activity</span>
+                                <div class="flex-1 h-px bg-amber-800/30"></div>
+                            </div>
+
+                            <!-- The Next Post -->
+                            <div class="p-8 bg-gradient-to-br from-amber-400 to-amber-500 rounded-2xl mb-6">
+                                <h3 class="text-sm font-semibold uppercase tracking-wider mb-4 text-amber-900">Post #2: The Follow-Up</h3>
+                                <p class="mb-4 text-neutral-900 leading-relaxed">
+                                    Your first post established your voice. Now you need to prove it wasn't a one-off. Post #2 is where you show <strong>consistency</strong> — same account, same vibe, but fresh content.
+                                </p>
+                                <div class="p-4 bg-amber-300/50 rounded-xl border border-amber-600/30">
+                                    <p class="text-sm text-amber-900 font-serif italic">
+                                        ✦ The second post is harder than the first. The novelty is gone. Now you have to actually show up.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Step 1 -->
+                            <div class="card rounded-2xl p-8 mb-6">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <span class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">1</span>
+                                    <h3 class="text-lg font-serif text-neutral-100">The Concept</h3>
+                                </div>
+                                <p class="text-neutral-500 text-sm mb-4">
+                                    What's post #2 about? It should feel connected to post #1 (same voice, same account identity) but cover something different. Think about:<br><br>
+                                    • A follow-up thought to your first post<br>
+                                    • A completely different topic in the same voice<br>
+                                    • Something that happened this week worth sharing<br>
+                                    • A question you've been sitting with
+                                </p>
+                                <textarea data-key="post2Concept" rows="3" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="What's the core idea for post #2?">${entries.post2Concept || ''}</textarea>
+                            </div>
+
+                            <!-- Step 2 -->
+                            <div class="card rounded-2xl p-8 mb-6">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <span class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">2</span>
+                                    <h3 class="text-lg font-serif text-neutral-100">The Visual</h3>
+                                </div>
+                                <p class="text-neutral-500 text-sm mb-4">
+                                    What image goes with this post? Does it match the aesthetic of post #1, or are you evolving the look?
+                                </p>
+                                <textarea data-key="post2Visual" rows="3" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="Describe the image. What does it look like? What feeling does it create?">${entries.post2Visual || ''}</textarea>
+                            </div>
+
+                            <!-- Step 3 -->
+                            <div class="card rounded-2xl p-8 mb-8">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div class="flex items-center gap-3">
+                                        <span class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 text-neutral-900 rounded-full flex items-center justify-center text-sm font-medium shadow-md">3</span>
+                                        <h3 class="text-lg font-serif text-neutral-100">The Full Caption</h3>
+                                    </div>
+                                    <span class="text-amber-600/50 text-xs font-medium">150–300 words</span>
+                                </div>
+                                <p class="text-neutral-500 text-sm mb-4">
+                                    Write post #2. Apply what you learned from post #1. If something worked, do more of it. If something felt off, fix it here.
+                                </p>
+                                <textarea data-key="post2Caption" rows="12" class="w-full p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl text-neutral-200 placeholder-neutral-600 resize-none" placeholder="Write your full caption here.
+
+This is post #2. Same voice, new content.
+Show that you can do it twice.">${entries.post2Caption || ''}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Guidelines -->
+                        <div class="grid md:grid-cols-2 gap-4 mb-8">
+                            <div class="card rounded-2xl p-6">
+                                <p class="text-amber-400 text-xs uppercase tracking-wider mb-4 font-medium">Your voice includes:</p>
+                                <ul class="text-neutral-400 text-sm space-y-2">
+                                    <li class="flex items-center gap-2"><span class="text-amber-500">→</span> Self-deprecating humour</li>
+                                    <li class="flex items-center gap-2"><span class="text-amber-500">→</span> Honest admissions</li>
+                                    <li class="flex items-center gap-2"><span class="text-amber-500">→</span> Specific weird details</li>
+                                    <li class="flex items-center gap-2"><span class="text-amber-500">→</span> Extended metaphors that land</li>
+                                    <li class="flex items-center gap-2"><span class="text-amber-500">→</span> Spiritual depth when it fits</li>
+                                </ul>
+                            </div>
+                            <div class="card rounded-2xl p-6">
+                                <p class="text-neutral-500 text-xs uppercase tracking-wider mb-4 font-medium">Avoid:</p>
+                                <ul class="text-neutral-500 text-sm space-y-2">
+                                    <li class="flex items-center gap-2"><span class="text-neutral-600">✕</span> Generic motivational quotes</li>
+                                    <li class="flex items-center gap-2"><span class="text-neutral-600">✕</span> Trying to sound like someone else</li>
+                                    <li class="flex items-center gap-2"><span class="text-neutral-600">✕</span> Overthinking (you're allergic)</li>
+                                    <li class="flex items-center gap-2"><span class="text-neutral-600">✕</span> Playing it safe</li>
+                                    <li class="flex items-center gap-2"><span class="text-neutral-600">✕</span> Forgetting the strawberry laces energy</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Closing -->
+                        <div class="p-8 bg-gradient-to-br from-neutral-800/50 to-amber-900/20 rounded-2xl text-center border border-amber-800/20">
+                            <p class="text-neutral-400 text-lg font-serif italic mb-4">
+                                "The second post is where most people quit."
+                            </p>
+                            <p class="text-neutral-500 text-sm mb-4">
+                                Don't be most people.<br>
+                                You've already proven you can start. Now prove you can continue.
+                            </p>
+                            <p class="text-amber-500 text-xs uppercase tracking-widest">
+                                ✦ Consistency beats perfection. Post it.
+                            </p>
+                        </div>
+                    </div>
+                </section>`;
+        }
+
+        loadEntries();
+        render();
+    </script>
+</body>
+</html>
